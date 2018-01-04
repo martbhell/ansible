@@ -300,35 +300,35 @@ class LinuxHardware(Hardware):
                 else:
                     dmi_facts[key] = 'NA'
 
-        else:
-            # Fall back to using dmidecode, if available
-            dmi_bin = self.module.get_bin_path('dmidecode')
-            DMI_DICT = {
-                'bios_date': 'bios-release-date',
-                'bios_version': 'bios-version',
-                'form_factor': 'chassis-type',
-                'product_name': 'system-product-name',
-                'product_serial': 'system-serial-number',
-                'product_uuid': 'system-uuid',
-                'product_version': 'system-version',
-                'system_vendor': 'system-manufacturer'
-            }
-            for (k, v) in DMI_DICT.items():
-                if dmi_bin is not None:
-                    (rc, out, err) = self.module.run_command('%s -s %s' % (dmi_bin, v))
-                    if rc == 0:
-                        # Strip out commented lines (specific dmidecode output)
-                        thisvalue = ''.join([line for line in out.splitlines() if not line.startswith('#')])
-                        try:
-                            json.dumps(thisvalue)
-                        except UnicodeDecodeError:
-                            thisvalue = "NA"
+        # Use dmidecode if available and if "NA" from dmi
+        dmi_bin = self.module.get_bin_path('dmidecode')
+        DMI_DICT = {
+            'bios_date': 'bios-release-date',
+            'bios_version': 'bios-version',
+            'form_factor': 'chassis-type',
+            'product_name': 'system-product-name',
+            'product_serial': 'system-serial-number',
+            'product_uuid': 'system-uuid',
+            'product_version': 'system-version',
+            'system_vendor': 'system-manufacturer'
+        }
+        for (k, v) in DMI_DICT.items():
+            if dmi_bin is not None:
+                (rc, out, err) = self.module.run_command('%s -s %s' % (dmi_bin, v))
+                if rc == 0:
+                    # Strip out commented lines (specific dmidecode output)
+                    thisvalue = ''.join([line for line in out.splitlines() if not line.startswith('#')])
+                    try:
+                        json.dumps(thisvalue)
+                    except UnicodeDecodeError:
+                        thisvalue = "NA"
 
+                    if dmi_facts[k] == "NA" and not thisvalue.isspace():
                         dmi_facts[k] = thisvalue
-                    else:
-                        dmi_facts[k] = 'NA'
                 else:
                     dmi_facts[k] = 'NA'
+            else:
+                dmi_facts[k] = 'NA'
 
         return dmi_facts
 
